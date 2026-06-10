@@ -39,6 +39,8 @@ def main():
                         help="분석 대상 숙소 수 (기본 50)")
     parser.add_argument("--acm-ids", dest="acm_ids", default="",
                         help="발송 대상 숙소 ID comma-separated. 지정 시 해당 숙소만 이메일 발송")
+    parser.add_argument("--schedule-slack", dest="schedule_slack", action="store_true",
+                        help="Slack 메인 리포트를 월요일 11시에 예약 발송 (이메일 미리보기는 즉시 발송)")
     args = parser.parse_args()
 
     dry_run   = not args.execute
@@ -123,19 +125,33 @@ def main():
                     no_ad_targets, upgrade_targets, region_avgs,
                     slack_summary, email_contents,
                 )
-                ts = stage1_slack.post(blocks, slack_channel, slack_token)
-                if ts:
-                    # 각 숙소 이메일 전문을 스레드로 첨부
-                    stage1_slack.post_email_threads(
+                if args.schedule_slack:
+                    # 이메일 미리보기 즉시 발송 → 메인 리포트 11시 예약
+                    stage1_slack.post_preview_notice(
                         targets=email_candidates,
                         email_contents=email_contents,
                         channel_id=slack_channel,
                         bot_token=slack_token,
-                        thread_ts=ts,
                     )
-                    print("  ✓ 리포트 + 이메일 미리보기 스레드 발송 완료")
+                    sid = stage1_slack.post_scheduled(blocks, slack_channel, slack_token)
+                    if sid:
+                        print("  ✓ 이메일 미리보기 즉시 발송 + 리포트 11시 예약 완료")
+                    else:
+                        print("  ✗ 예약 실패")
                 else:
-                    print("  ✗ 발송 실패")
+                    # 즉시 발송 (수동 테스트용)
+                    ts = stage1_slack.post(blocks, slack_channel, slack_token)
+                    if ts:
+                        stage1_slack.post_email_threads(
+                            targets=email_candidates,
+                            email_contents=email_contents,
+                            channel_id=slack_channel,
+                            bot_token=slack_token,
+                            thread_ts=ts,
+                        )
+                        print("  ✓ 리포트 + 이메일 미리보기 스레드 발송 완료")
+                    else:
+                        print("  ✗ 발송 실패")
             else:
                 print(f"  [DRY_RUN] {len(all_targets)}개 타겟 Slack 발송 시뮬레이션")
                 if email_contents:

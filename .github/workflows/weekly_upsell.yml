@@ -2,7 +2,7 @@ name: 호스트 광고 업셀 에이전트
 
 on:
   schedule:
-    - cron: "0 0 * * 1"   # 매주 월요일 UTC 00:00 (KST 09:00)
+    - cron: "0 16 * * 0"  # 매주 일요일 UTC 16:00 (KST 월요일 01:00)
   workflow_dispatch:
     inputs:
       stage:
@@ -52,8 +52,16 @@ jobs:
           FROM_EMAIL:              marketing@mrmention.co.kr
           SMTP_PASSWORD:           ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
-          STAGE="${{ github.event.inputs.stage || 'all' }}"
-          EXECUTE="${{ github.event.inputs.execute || 'false' }}"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            STAGE="1"
+            EXECUTE="true"
+            SCHED_FLAG="--schedule-slack"
+          else
+            STAGE="${{ github.event.inputs.stage || 'all' }}"
+            EXECUTE="${{ github.event.inputs.execute || 'false' }}"
+            SCHED_FLAG=""
+          fi
+
           ACM_IDS="${{ github.event.inputs.acm_ids || '' }}"
 
           EXEC_FLAG=""
@@ -62,7 +70,7 @@ jobs:
           ACM_FLAG=""
           if [ -n "$ACM_IDS" ]; then ACM_FLAG="--acm-ids $ACM_IDS"; fi
 
-          python run.py --stage "$STAGE" $EXEC_FLAG $ACM_FLAG
+          python run.py --stage "$STAGE" $EXEC_FLAG $ACM_FLAG $SCHED_FLAG
 
       - name: 발송 이력(sent_log.json) 커밋
         if: ${{ github.event.inputs.execute == 'true' || github.event_name == 'schedule' }}

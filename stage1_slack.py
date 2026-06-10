@@ -171,8 +171,20 @@ def build_message(
     return blocks
 
 
+def _next_monday_11am_kst() -> int:
+    """다음(또는 오늘) 월요일 오전 11시 KST의 Unix timestamp 반환."""
+    now = datetime.now(KST)
+    days_to_monday = (7 - now.weekday()) % 7
+    if days_to_monday == 0 and now.hour >= 11:
+        days_to_monday = 7
+    target = (now + timedelta(days=days_to_monday)).replace(
+        hour=11, minute=0, second=0, microsecond=0
+    )
+    return int(target.timestamp())
+
+
 def post(blocks: list[dict], channel_id: str, bot_token: str) -> str | None:
-    """메인 메시지 발송. 성공 시 thread_ts 반환, 실패 시 None."""
+    """메인 메시지 즉시 발송. 성공 시 thread_ts 반환, 실패 시 None."""
     client = WebClient(token=bot_token)
     try:
         resp = client.chat_postMessage(
@@ -184,6 +196,59 @@ def post(blocks: list[dict], channel_id: str, bot_token: str) -> str | None:
     except SlackApiError as e:
         print(f"Slack 발송 실패: {e.response['error']}")
         return None
+
+
+def post_scheduled(blocks: list[dict], channel_id: str, bot_token: str) -> str | None:
+    """메인 리포트를 월요일 오전 11시 KST에 예약 발송. 성공 시 scheduled_message_id 반환."""
+    client = WebClient(token=bot_token)
+    post_at = _next_monday_11am_kst()
+    try:
+        resp = client.chat_scheduleMessage(
+            channel=channel_id,
+            blocks=blocks,
+            text="호스트 광고 업셀 리포트",
+            post_at=post_at,
+        )
+        import datetime as _dt
+        scheduled_time = _dt.datetime.fromtimestamp(post_at, KST).strftime("%Y-%m-%d %H:%M KST")
+        print(f"  → 예약 시각: {scheduled_time}")
+        return resp["scheduled_message_id"]
+    except SlackApiError as e:
+        print(f"Slack 예약 발송 실패: {e.response['error']}")
+        return None
+
+
+def post_preview_notice(
+    targets: list[dict],
+    email_contents: dict,
+    channel_id: str,
+    bot_token: str,
+    delay: float = 0.5,
+) -> None:
+    """이메일 전문을 즉시 발송 (11시 메인 리포트 검토용 미리보기)."""
+    client = WebClient(token=bot_token)
+    today = datetime.now(KST).strftime("%Y-%m-%d")
+    try:
+        resp = client.chat_postMessage(
+            channel=channel_id,
+            blocks=[{
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": (
+                        f"📋 *[{today}] 업셀 이메일 미리보기*\n"
+                        "오전 11시에 발송될 리포트의 이메일 전문입니다.\n"
+                        "스레드에서 내용 확인 후 *11시 메시지*에서 발송 버튼을 눌러주세요."
+                    ),
+                },
+            }],
+            text="업셀 이메일 미리보기",
+        )
+        thread_ts = resp["ts"]
+    except SlackApiError as e:
+        print(f"  ⚠ 미리보기 메시지 발송 실패: {e.response['error']}")
+        return
+    post_email_threads(targets, email_contents, channel_id, bot_token, thread_ts, delay)
 
 
 def post_email_threads(
