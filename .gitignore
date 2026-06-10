@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.log
+sent_log.json

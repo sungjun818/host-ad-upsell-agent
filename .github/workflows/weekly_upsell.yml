@@ -1,0 +1,98 @@
+name: 호스트 광고 업셀 에이전트
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"   # 매주 월요일 UTC 00:00 (KST 09:00)
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "실행 단계 (1=Slack리포트, 2=이메일, all=전체)"
+        required: false
+        default: "all"
+      execute:
+        description: "실제 발송 여부 (true/false)"
+        required: false
+        default: "false"
+      acm_ids:
+        description: "발송 대상 숙소 ID comma-separated (버튼 클릭 시 자동 입력, 공백=전체)"
+        required: false
+        default: ""
+
+jobs:
+  upsell:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: host-ad-upsell-agent
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Python 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: host-ad-upsell-agent/requirements.txt
+
+      - name: 의존성 설치
+        run: pip install -r requirements.txt
+
+      - name: 업셀 에이전트 실행
+        env:
+          DB_HOST:                 ${{ secrets.DB_HOST }}
+          DB_PORT:                 ${{ secrets.DB_PORT }}
+          DB_NAME:                 ${{ secrets.DB_NAME }}
+          DB_USER:                 ${{ secrets.DB_USER }}
+          DB_PASSWORD:             ${{ secrets.DB_PASSWORD }}
+          ANTHROPIC_API_KEY:       ${{ secrets.ANTHROPIC_API_KEY }}
+          AGENT_BOT_TOKEN:         ${{ secrets.AGENT_BOT_TOKEN }}
+          UPSELL_SLACK_CHANNEL_ID: ${{ secrets.UPSELL_SLACK_CHANNEL_ID }}
+          SMTP_HOST:               smtp.gmail.com
+          SMTP_PORT:               "587"
+          SMTP_USER:               partnerhost@mrmention.co.kr
+          FROM_EMAIL:              marketing@mrmention.co.kr
+          SMTP_PASSWORD:           ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          STAGE="${{ github.event.inputs.stage || 'all' }}"
+          EXECUTE="${{ github.event.inputs.execute || 'false' }}"
+          ACM_IDS="${{ github.event.inputs.acm_ids || '' }}"
+
+          EXEC_FLAG=""
+          if [ "$EXECUTE" = "true" ]; then EXEC_FLAG="--execute"; fi
+
+          ACM_FLAG=""
+          if [ -n "$ACM_IDS" ]; then ACM_FLAG="--acm-ids $ACM_IDS"; fi
+
+          python run.py --stage "$STAGE" $EXEC_FLAG $ACM_FLAG
+
+      - name: 발송 이력(sent_log.json) 커밋
+        if: ${{ github.event.inputs.execute == 'true' || github.event_name == 'schedule' }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sent_log.json || true
+          git diff --cached --quiet || git commit -m "chore: update upsell sent_log [skip ci]"
+          git push
+
+      - name: 완료 알림 Slack 발송
+        if: ${{ github.event.inputs.acm_ids != '' && github.event.inputs.execute == 'true' }}
+        env:
+          AGENT_BOT_TOKEN:         ${{ secrets.AGENT_BOT_TOKEN }}
+          UPSELL_SLACK_CHANNEL_ID: ${{ secrets.UPSELL_SLACK_CHANNEL_ID }}
+          ACM_IDS:                 ${{ github.event.inputs.acm_ids }}
+        run: |
+          python - <<'EOF'
+          import os
+          from slack_sdk import WebClient
+          client = WebClient(token=os.environ["AGENT_BOT_TOKEN"])
+          channel = os.environ["UPSELL_SLACK_CHANNEL_ID"]
+          acm_ids = os.environ.get("ACM_IDS", "")
+          count = len([x for x in acm_ids.split(",") if x.strip()])
+          client.chat_postMessage(
+              channel=channel,
+              text=f"✅ 업셀 이메일 발송 완료: *{count}개* 숙소 호스트에게 이메일을 발송했습니다."
+          )
+          EOF

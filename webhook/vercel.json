@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/api/slack-interactive", "destination": "/api/slack_interactive" }
+  ],
+  "env": {
+    "SLACK_SIGNING_SECRET": "@slack-signing-secret",
+    "GH_PAT":               "@gh-pat",
+    "GH_OWNER":             "@gh-owner",
+    "GH_REPO":              "@gh-repo"
+  }
+}

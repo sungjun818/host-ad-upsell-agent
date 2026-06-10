@@ -1,0 +1,4 @@
+anthropic>=0.40.0
+pymysql>=1.1.0
+python-dotenv>=1.0.0
+slack-sdk>=3.27.0

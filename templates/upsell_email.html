@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin:0; padding:0; background:#f5f5f5; font-family:'Apple SD Gothic Neo',Arial,sans-serif; }
+  .wrap { max-width:600px; margin:32px auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .header { background:#1a1a2e; padding:32px 40px; text-align:center; }
+  .header img { height:36px; }
+  .header h1 { color:#fff; font-size:20px; margin:16px 0 0; font-weight:600; }
+  .body { padding:40px; }
+  .greeting { font-size:16px; color:#333; line-height:1.6; margin-bottom:28px; }
+  .stat-box { background:#f8f9ff; border-left:4px solid #4f6af0; border-radius:6px; padding:20px 24px; margin-bottom:28px; }
+  .stat-box .label { font-size:13px; color:#888; margin-bottom:4px; }
+  .stat-box .value { font-size:24px; font-weight:700; color:#1a1a2e; }
+  .stat-row { display:flex; gap:24px; margin-bottom:28px; }
+  .stat-item { flex:1; background:#f8f9ff; border-radius:6px; padding:16px 20px; text-align:center; }
+  .stat-item .s-label { font-size:12px; color:#888; margin-bottom:6px; }
+  .stat-item .s-value { font-size:18px; font-weight:700; color:#1a1a2e; }
+  .compare { background:#fff3e0; border-radius:6px; padding:16px 20px; margin-bottom:28px; font-size:14px; color:#e65100; }
+  .proposal { background:#e8f5e9; border-radius:6px; padding:20px 24px; margin-bottom:28px; }
+  .proposal h3 { margin:0 0 12px; font-size:15px; color:#2e7d32; }
+  .proposal p { margin:0; font-size:14px; color:#444; line-height:1.7; }
+  .benefit-list { list-style:none; padding:0; margin:12px 0 0; }
+  .benefit-list li { font-size:14px; color:#444; padding:4px 0; }
+  .benefit-list li::before { content:"✅ "; }
+  .body-text { font-size:14px; color:#555; line-height:1.8; white-space:pre-line; margin-bottom:28px; }
+  .cta { text-align:center; margin-bottom:32px; }
+  .cta a { display:inline-block; background:#4f6af0; color:#fff; text-decoration:none; padding:14px 36px; border-radius:8px; font-size:15px; font-weight:600; }
+  .footer { background:#fafafa; padding:24px 40px; text-align:center; border-top:1px solid #eee; }
+  .footer p { font-size:12px; color:#aaa; margin:4px 0; }
+  .footer a { color:#888; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>미스터멘션 파트너 성장 제안</h1>
+  </div>
+
+  <div class="body">
+    <p class="greeting">{{host_name}}님 안녕하세요,<br>미스터멘션 파트너 성장팀입니다. 🙏</p>
+
+    <div class="stat-box">
+      <div class="label">최근 90일 귀 숙소 예약 실적</div>
+      <div class="value">{{res_90d}}건 · GMV {{gmv_90d_fmt}}원</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-item">
+        <div class="s-label">현재 패키지</div>
+        <div class="s-value">{{current_pkg}}</div>
+      </div>
+      <div class="stat-item">
+        <div class="s-label">지역 광고 숙소 평균</div>
+        <div class="s-value">{{avg_res}}건</div>
+      </div>
+      <div class="stat-item">
+        <div class="s-label">추가 예상 수익(90일)</div>
+        <div class="s-value" style="color:#e53935;">+{{extra_rev_fmt}}원</div>
+      </div>
+    </div>
+
+    {{#if_compare}}
+    <div class="compare">
+      📊 같은 지역 광고 숙소는 평균 <strong>{{avg_res}}건</strong>을 기록하고 있습니다.
+      <strong>{{rec_package}}</strong>으로 전환 시 노출 우선순위가 높아져 예약 증가를 기대할 수 있습니다.
+    </div>
+    {{/if_compare}}
+
+    <div class="proposal">
+      <h3>🎯 추천 패키지: {{rec_package}} ({{rec_rate_pct}}%)</h3>
+      <ul class="benefit-list">
+        <li>검색 결과 상단 우선 노출</li>
+        <li>미스터멘션 뉴스레터 · 푸시 알림 우선 선정</li>
+        <li>전담 파트너 매니저 지원</li>
+      </ul>
+    </div>
+
+    <p class="body-text">{{email_body}}</p>
+
+    <div class="cta">
+      <a href="mailto:help@mrmention.co.kr?subject={{email_subject_encoded}}">지금 업그레이드 문의하기 →</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>미스터멘션 | help@mrmention.co.kr</p>
+    <p>본 메일은 미스터멘션에 등록된 호스트님께 발송됩니다.</p>
+    <p><a href="mailto:help@mrmention.co.kr?subject=수신거부">수신 거부</a></p>
+  </div>
+</div>
+</body>
+</html>

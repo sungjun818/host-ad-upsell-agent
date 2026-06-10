@@ -1,0 +1,1 @@
+# Vercel Python serverless — stdlib만 사용하므로 추가 패키지 없음
