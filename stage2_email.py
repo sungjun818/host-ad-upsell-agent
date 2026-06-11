@@ -105,7 +105,7 @@ def send_batch(
     test_to: str = "",
 ) -> dict:
     """배치 이메일 발송. email_contents: {acm_id: {subject, body}}"""
-    cooldown = 30 if not dry_run else 0
+    cooldown = 14 if not dry_run else 0
     pending = sent_log.pending_emails(targets, cooldown_days=cooldown)
 
     print(f"\n📧 이메일 발송 대상: {len(pending)}/{len(targets)}개 (쿨다운 제외)")

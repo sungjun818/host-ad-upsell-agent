@@ -21,7 +21,7 @@ def _save(log: dict) -> None:
         json.dump(log, f, ensure_ascii=False, indent=2)
 
 
-def should_send(email: str, cooldown_days: int = 30) -> bool:
+def should_send(email: str, cooldown_days: int = 14) -> bool:
     """cooldown_days 이내 발송 이력 없으면 True."""
     if not email:
         return False
@@ -39,6 +39,6 @@ def mark_sent(email: str) -> None:
     _save(log)
 
 
-def pending_emails(targets: list[dict], cooldown_days: int = 30) -> list[dict]:
+def pending_emails(targets: list[dict], cooldown_days: int = 14) -> list[dict]:
     """발송 대상 중 cooldown 미경과 호스트만 필터링."""
     return [t for t in targets if should_send(t.get("host_email", ""), cooldown_days)]
