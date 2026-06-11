@@ -186,15 +186,12 @@ def build_message(
     return blocks
 
 
-def _next_monday_11am_kst() -> int:
-    """다음(또는 오늘) 월요일 오전 11시 KST의 Unix timestamp 반환."""
+def _next_10am_kst() -> int:
+    """오늘(또는 내일) 오전 10시 KST의 Unix timestamp 반환."""
     now = datetime.now(KST)
-    days_to_monday = (7 - now.weekday()) % 7
-    if days_to_monday == 0 and now.hour >= 11:
-        days_to_monday = 7
-    target = (now + timedelta(days=days_to_monday)).replace(
-        hour=11, minute=0, second=0, microsecond=0
-    )
+    target = now.replace(hour=10, minute=0, second=0, microsecond=0)
+    if target <= now:
+        target += timedelta(days=1)
     return int(target.timestamp())
 
 
@@ -216,7 +213,7 @@ def post(blocks: list[dict], channel_id: str, bot_token: str) -> str | None:
 def post_scheduled(blocks: list[dict], channel_id: str, bot_token: str) -> str | None:
     """메인 리포트를 월요일 오전 11시 KST에 예약 발송. 성공 시 scheduled_message_id 반환."""
     client = WebClient(token=bot_token)
-    post_at = _next_monday_11am_kst()
+    post_at = _next_10am_kst()
     try:
         resp = client.chat_scheduleMessage(
             channel=channel_id,

@@ -27,6 +27,7 @@ import scorer
 import claude_client
 import stage1_slack
 import stage2_email
+import shown_log
 
 
 def main():
@@ -87,6 +88,13 @@ def main():
         grade_counts[t["grade"]] = grade_counts.get(t["grade"], 0) + 1
     print(f"  ✓ 등급 분포: {grade_counts}")
 
+    # Slack 리포트 모드: 최근 7일 이내 노출된 숙소 제외
+    if run_slack and not target_acm_ids:
+        all_targets     = shown_log.filter_new_targets(all_targets, cooldown_days=7)
+        no_ad_targets   = [t for t in all_targets if t.get("target_type") == "no_ad"]
+        upgrade_targets = [t for t in all_targets if t.get("target_type") == "upgrade"]
+        print(f"  ✓ 노출 쿨다운(7일) 필터 후: {len(all_targets)}개 (미가입 {len(no_ad_targets)} + 업그레이드 {len(upgrade_targets)})")
+
     if target_acm_ids:
         all_targets     = [t for t in all_targets     if t["acm_id"] in target_acm_ids]
         no_ad_targets   = [t for t in no_ad_targets   if t["acm_id"] in target_acm_ids]
@@ -128,7 +136,7 @@ def main():
                     slack_summary, email_contents,
                 )
                 if args.schedule_slack:
-                    # 이메일 미리보기 즉시 발송 → 메인 리포트 11시 예약
+                    # 이메일 미리보기 즉시 발송 → 메인 리포트 10시 예약
                     stage1_slack.post_preview_notice(
                         targets=email_candidates,
                         email_contents=email_contents,
@@ -137,7 +145,8 @@ def main():
                     )
                     sid = stage1_slack.post_scheduled(blocks, slack_channel, slack_token)
                     if sid:
-                        print("  ✓ 이메일 미리보기 즉시 발송 + 리포트 11시 예약 완료")
+                        shown_log.mark_shown([t["acm_id"] for t in all_targets])
+                        print("  ✓ 이메일 미리보기 즉시 발송 + 리포트 10시 예약 완료")
                     else:
                         print("  ✗ 예약 실패")
                 else:
@@ -151,6 +160,7 @@ def main():
                             bot_token=slack_token,
                             thread_ts=ts,
                         )
+                        shown_log.mark_shown([t["acm_id"] for t in all_targets])
                         print("  ✓ 리포트 + 이메일 미리보기 스레드 발송 완료")
                     else:
                         print("  ✗ 발송 실패")
