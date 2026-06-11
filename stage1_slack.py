@@ -120,7 +120,7 @@ def build_message(
             content   = email_contents.get(t["acm_id"], {})
             has_email = t["acm_id"] in email_contents
             subject   = content.get("subject", "—")
-            body_prev = content.get("body", "")[:130].replace("\n", " ").strip() if has_email else ""
+            body_full = content.get("body", "").strip() if has_email else ""
 
             text = (
                 f"{emoji} *[{t['grade']}급]* {t['acm_name']}\n"
@@ -132,8 +132,8 @@ def build_message(
             )
             if has_email:
                 text += f"\n✉️ *제목:* {subject}"
-                if body_prev:
-                    text += f"\n📝 _{body_prev}..._"
+                if body_full:
+                    text += f"\n📝 *이메일 본문:*\n{body_full}"
 
             blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text}})
             if has_email:
@@ -156,7 +156,7 @@ def build_message(
             content      = email_contents.get(t["acm_id"], {})
             has_email    = t["acm_id"] in email_contents
             subject      = content.get("subject", "—")
-            body_prev    = content.get("body", "")[:130].replace("\n", " ").strip() if has_email else ""
+            body_full    = content.get("body", "").strip() if has_email else ""
 
             text = (
                 f"{emoji} *[{t['grade']}급]* {t['acm_name']}\n"
@@ -168,8 +168,8 @@ def build_message(
             )
             if has_email:
                 text += f"\n✉️ *제목:* {subject}"
-                if body_prev:
-                    text += f"\n📝 _{body_prev}..._"
+                if body_full:
+                    text += f"\n📝 *이메일 본문:*\n{body_full}"
 
             blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text}})
             if has_email:

@@ -51,6 +51,13 @@ def generate_slack_proposals(targets: list[dict], region_avgs: dict) -> str:
     return resp.content[0].text
 
 
+_PACKAGE_BENEFITS = {
+    "스타터 패키지": "숙소 균등 노출(알고리즘 기반), 월간 이벤트 쿠폰 적용, SNS 마케팅(미스터멘션 공식 SNS 노출)",
+    "파트너 패키지": "숙소 균등 노출, 월간 이벤트 쿠폰 적용, SNS 마케팅, 별도 할인 쿠폰 제공, 이벤트 테마 노출, 앱 내 광고 활용(앱 PUSH 발송)",
+    "미멘 패키지": "숙소 균등 노출, 월간 이벤트 쿠폰 적용, SNS 마케팅, 별도 할인 쿠폰 제공, 이벤트 테마 노출, 앱 PUSH 발송, 인플루언서 마케팅 활용, 메인 페이지 숙소 노출",
+}
+
+
 def generate_email_body(target: dict, region_avg: dict) -> dict:
     """호스트 이메일용 개인화 제안 (제목 + 본문 반환)."""
     avg_res = round(float(region_avg.get("avg_res", 0)), 1)
@@ -58,6 +65,8 @@ def generate_email_body(target: dict, region_avg: dict) -> dict:
     current_pkg = target.get("advert_name", "없음")
     current_rate = target.get("advert_commission")
     current_rate_pct = int(float(current_rate) * 100) if current_rate else 0
+    rec_pkg = target['rec_package']
+    rec_benefits = _PACKAGE_BENEFITS.get(rec_pkg, "")
 
     prompt = f"""당신은 미스터멘션 사업운영팀입니다.
 아래 호스트에게 보낼 광고 업그레이드 제안 이메일을 작성하세요.
@@ -68,15 +77,18 @@ def generate_email_body(target: dict, region_avg: dict) -> dict:
 - 현재 패키지: {current_pkg} ({current_rate_pct}%)
 - 최근 90일 예약: {target['res_90d']}건 / GMV {target['gmv_90d']:,}원
 - 같은 지역 광고 숙소 평균: {avg_res}건
-- 추천 패키지: {target['rec_package']} ({int(target['rec_rate']*100)}%)
+- 추천 패키지: {rec_pkg} ({int(target['rec_rate']*100)}%)
 - 추천 패키지 전환 시 예상 추가 수익(90일): 약 {extra_rev:,}원
+
+[{rec_pkg} 혜택]
+{rec_benefits}
 
 작성 지침:
 - 이메일 제목과 본문을 JSON으로 반환: {{"subject": "...", "body": "..."}}
 - 호스트를 존중하는 정중한 어투 (존댓말)
 - 현재 실적을 구체적 수치로 언급해 신뢰감 부여
 - 지역 평균과 비교해 성장 가능성 제시
-- 추천 패키지의 혜택(노출 우선순위, 추가 지원)을 2~3줄로 설명
+- 위의 [{rec_pkg} 혜택] 항목들을 이메일 본문에 자연스럽게 녹여 2~3줄로 설명 (혜택 목록을 그대로 나열하지 말고 문장으로 풀어서 작성)
 - 마지막에 CTA: "지금 업그레이드 문의하기 → help@mrmention.co.kr"
 - 발신자 서명은 반드시 '미스터멘션 사업운영팀'으로 작성 (영문 MrMention 사용 금지)
 - 본문 500자 이내, HTML 태그 없이 순수 텍스트
