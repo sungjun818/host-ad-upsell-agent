@@ -33,7 +33,7 @@ def _verify_slack_signature(body: bytes, timestamp: str, signature: str) -> bool
 
 # ── GitHub Actions workflow_dispatch 트리거 ──────────────────────────────────
 
-def _trigger_github_actions(acm_ids: str) -> tuple[bool, str]:
+def _trigger_github_actions(acm_ids: str, test_mode: bool = False) -> tuple[bool, str]:
     token  = os.environ.get("GH_PAT", "")
     owner  = os.environ.get("GH_OWNER", "sungjun818")
     repo   = os.environ.get("GH_REPO",  "")
@@ -44,11 +44,12 @@ def _trigger_github_actions(acm_ids: str) -> tuple[bool, str]:
     url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow}/dispatches"
 
     payload = json.dumps({
-        "ref": "main",
+        "ref": "master",
         "inputs": {
-            "stage":   "2",
-            "execute": "true",
-            "acm_ids": acm_ids,
+            "stage":     "2",
+            "execute":   "true",
+            "acm_ids":   acm_ids,
+            "test_mode": "true" if test_mode else "false",
         },
     }).encode()
 
@@ -116,6 +117,15 @@ class handler(BaseHTTPRequestHandler):
         action    = actions[0]
         action_id = action.get("action_id", "")
         acm_ids   = action.get("value", "")
+
+        if action_id == "test_upsell_email":
+            self._respond(200, {"text": f"🔍 테스트 이메일 발송 중... (acm_id: {acm_ids})", "response_type": "in_channel"})
+            ok, msg = _trigger_github_actions(acm_ids, test_mode=True)
+            if not ok:
+                print(f"[ERROR] 테스트 발송 트리거 실패: {msg}")
+            else:
+                print(f"[INFO] 테스트 발송 트리거 성공: acm_id={acm_ids}")
+            return
 
         if action_id not in ("send_upsell_email", "send_all_upsell") or not acm_ids:
             self._respond(200, {"ok": True})

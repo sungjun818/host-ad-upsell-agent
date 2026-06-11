@@ -17,6 +17,10 @@ on:
         description: "발송 대상 숙소 ID comma-separated (버튼 클릭 시 자동 입력, 공백=전체)"
         required: false
         default: ""
+      test_mode:
+        description: "테스트 발송 여부 (true=TEST_EMAIL_TO로 발송, 호스트에게 미발송)"
+        required: false
+        default: "false"
 
 jobs:
   upsell:
@@ -51,6 +55,7 @@ jobs:
           SMTP_USER:               partnerhost@mrmention.co.kr
           FROM_EMAIL:              marketing@mrmention.co.kr
           SMTP_PASSWORD:           ${{ secrets.GMAIL_APP_PASSWORD }}
+          TEST_EMAIL_TO:           ${{ secrets.TEST_EMAIL_TO }}
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             STAGE="1"
@@ -70,7 +75,12 @@ jobs:
           ACM_FLAG=""
           if [ -n "$ACM_IDS" ]; then ACM_FLAG="--acm-ids $ACM_IDS"; fi
 
-          python run.py --stage "$STAGE" $EXEC_FLAG $ACM_FLAG $SCHED_FLAG
+          TEST_FLAG=""
+          if [ "${{ github.event.inputs.test_mode }}" = "true" ] && [ -n "$TEST_EMAIL_TO" ]; then
+            TEST_FLAG="--test-to $TEST_EMAIL_TO"
+          fi
+
+          python run.py --stage "$STAGE" $EXEC_FLAG $ACM_FLAG $SCHED_FLAG $TEST_FLAG
 
       - name: 발송 이력(sent_log.json) 커밋
         if: ${{ github.event.inputs.execute == 'true' || github.event_name == 'schedule' }}

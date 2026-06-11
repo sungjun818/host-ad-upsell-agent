@@ -61,14 +61,17 @@ def send_one(
     email_content: dict,
     smtp_conn: smtplib.SMTP,
     dry_run: bool = True,
+    test_to: str = "",
 ) -> bool:
-    """단일 호스트에게 이메일 발송."""
-    to_email = target.get("host_email", "")
+    """단일 호스트에게 이메일 발송. test_to 지정 시 해당 주소로 테스트 발송."""
+    to_email = test_to if test_to else target.get("host_email", "")
     if not to_email:
         print(f"  ⚠ 이메일 없음: {target.get('acm_name')}")
         return False
 
     subject = email_content.get("subject", "미스터멘션 파트너 성장 제안")
+    if test_to:
+        subject = f"[테스트] {subject}"
     ctx = _build_context(target, region_avg, email_content)
     html_body = _render(_load_template(), ctx)
 
@@ -99,6 +102,7 @@ def send_batch(
     email_contents: dict,
     dry_run: bool = True,
     delay_sec: float = 2.0,
+    test_to: str = "",
 ) -> dict:
     """배치 이메일 발송. email_contents: {acm_id: {subject, body}}"""
     cooldown = 30 if not dry_run else 0
@@ -116,7 +120,7 @@ def send_batch(
             region = t.get("region", "")
             avg = region_avgs.get(region, {})
             content = email_contents.get(t["acm_id"], {"subject": "제안", "body": ""})
-            ok = send_one(t, avg, content, smtp_conn=None, dry_run=True)
+            ok = send_one(t, avg, content, smtp_conn=None, dry_run=True, test_to=test_to)
             stats["success" if ok else "fail"] += 1
         return stats
 
@@ -133,7 +137,7 @@ def send_batch(
             region = t.get("region", "")
             avg = region_avgs.get(region, {})
             content = email_contents.get(t["acm_id"], {"subject": "제안", "body": ""})
-            ok = send_one(t, avg, content, smtp_conn=server, dry_run=False)
+            ok = send_one(t, avg, content, smtp_conn=server, dry_run=False, test_to=test_to)
             stats["success" if ok else "fail"] += 1
             if ok:
                 time.sleep(delay_sec)

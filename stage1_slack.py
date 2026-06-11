@@ -30,6 +30,15 @@ def _fmt_phone(phone: str | None) -> str:
     return p
 
 
+def _test_button(acm_id: int) -> dict:
+    return {
+        "type": "button",
+        "text": {"type": "plain_text", "text": "🔍 테스트 발송"},
+        "action_id": "test_upsell_email",
+        "value": str(acm_id),
+    }
+
+
 def _send_button(acm_id: int) -> dict:
     return {
         "type": "button",
@@ -105,11 +114,13 @@ def build_message(
             "text": {"type": "mrkdwn", "text": f"*🆕 광고 미가입 타겟 (총 {len(no_ad_targets)}개)*"},
         })
         for t in no_ad_targets[:15]:
-            region  = t.get("region", "")
-            avg_res = round(float(region_avgs.get(region, {}).get("avg_res", 0)), 1)
-            emoji   = _grade_emoji(t["grade"])
-            subject = email_contents.get(t["acm_id"], {}).get("subject", "—")
+            region    = t.get("region", "")
+            avg_res   = round(float(region_avgs.get(region, {}).get("avg_res", 0)), 1)
+            emoji     = _grade_emoji(t["grade"])
+            content   = email_contents.get(t["acm_id"], {})
             has_email = t["acm_id"] in email_contents
+            subject   = content.get("subject", "—")
+            body_prev = content.get("body", "")[:130].replace("\n", " ").strip() if has_email else ""
 
             text = (
                 f"{emoji} *[{t['grade']}급]* {t['acm_name']}\n"
@@ -121,14 +132,15 @@ def build_message(
             )
             if has_email:
                 text += f"\n✉️ *제목:* {subject}"
+                if body_prev:
+                    text += f"\n📝 _{body_prev}..._"
 
-            block: dict = {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": text},
-            }
+            blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text}})
             if has_email:
-                block["accessory"] = _send_button(t["acm_id"])
-            blocks.append(block)
+                blocks.append({
+                    "type": "actions",
+                    "elements": [_test_button(t["acm_id"]), _send_button(t["acm_id"])],
+                })
 
         blocks.append({"type": "divider"})
 
@@ -141,8 +153,10 @@ def build_message(
         for t in upgrade_targets[:10]:
             emoji        = _grade_emoji(t["grade"])
             cur_rate_pct = int(float(t["advert_commission"]) * 100)
-            subject      = email_contents.get(t["acm_id"], {}).get("subject", "—")
+            content      = email_contents.get(t["acm_id"], {})
             has_email    = t["acm_id"] in email_contents
+            subject      = content.get("subject", "—")
+            body_prev    = content.get("body", "")[:130].replace("\n", " ").strip() if has_email else ""
 
             text = (
                 f"{emoji} *[{t['grade']}급]* {t['acm_name']}\n"
@@ -154,14 +168,15 @@ def build_message(
             )
             if has_email:
                 text += f"\n✉️ *제목:* {subject}"
+                if body_prev:
+                    text += f"\n📝 _{body_prev}..._"
 
-            block: dict = {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": text},
-            }
+            blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text}})
             if has_email:
-                block["accessory"] = _send_button(t["acm_id"])
-            blocks.append(block)
+                blocks.append({
+                    "type": "actions",
+                    "elements": [_test_button(t["acm_id"]), _send_button(t["acm_id"])],
+                })
 
     blocks.append({
         "type": "context",

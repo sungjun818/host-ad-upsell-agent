@@ -41,6 +41,8 @@ def main():
                         help="발송 대상 숙소 ID comma-separated. 지정 시 해당 숙소만 이메일 발송")
     parser.add_argument("--schedule-slack", dest="schedule_slack", action="store_true",
                         help="Slack 메인 리포트를 월요일 11시에 예약 발송 (이메일 미리보기는 즉시 발송)")
+    parser.add_argument("--test-to", dest="test_to", default="",
+                        help="테스트 발송 이메일 주소 (지정 시 호스트 대신 이 주소로 발송, 제목에 [테스트] 접두어)")
     args = parser.parse_args()
 
     dry_run   = not args.execute
@@ -169,6 +171,7 @@ def main():
             region_avgs=region_avgs,
             email_contents=email_contents,
             dry_run=dry_run,
+            test_to=args.test_to,
         )
         print(f"  ✓ 완료: 발송 {stats['success']}건 | 스킵 {stats['skip']}건 | 실패 {stats['fail']}건")
 
