@@ -41,17 +41,17 @@ def _build_context(target: dict, region_avg: dict, email_content: dict) -> dict:
     subject = email_content.get("subject", "미스터멘션 파트너 성장 제안")
 
     return {
-        "host_name":           target.get("host_name", "호스트"),
-        "acm_name":            target.get("acm_name", ""),
-        "res_90d":             target.get("res_90d", 0),
-        "gmv_90d_fmt":         f"{int(target.get('gmv_90d', 0)):,}",
-        "current_pkg":         current_pkg,
-        "avg_res":             avg_res,
-        "extra_rev_fmt":       f"{extra_rev:,}",
-        "rec_package":         target.get("rec_package", ""),
-        "rec_rate_pct":        int(float(target.get("rec_rate", 0)) * 100),
-        "email_body":          email_content.get("body", ""),
-        "email_subject_encoded": quote(subject),
+        "host_name":   target.get("host_name", "호스트"),
+        "acm_name":    target.get("acm_name", ""),
+        "acm_id":      target.get("acm_id", ""),
+        "res_90d":     target.get("res_90d", 0),
+        "gmv_90d_fmt": f"{int(target.get('gmv_90d', 0)):,}",
+        "current_pkg": current_pkg,
+        "avg_res":     avg_res,
+        "extra_rev_fmt": f"{extra_rev:,}",
+        "rec_package": target.get("rec_package", ""),
+        "rec_rate_pct": int(float(target.get("rec_rate", 0)) * 100),
+        "email_body":  email_content.get("body", ""),
     }
 
 
