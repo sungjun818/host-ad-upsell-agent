@@ -38,9 +38,10 @@ def get_no_ad_targets(conn, limit: int = 50) -> list[dict]:
             ), 0)                   AS gmv_90d,
             SUBSTRING_INDEX(SUBSTRING_INDEX(acm.name_expression, '/', 1), '[', -1) AS region
         FROM accommodations acm
-        LEFT JOIN users u         ON u.id = acm.user_id
-        LEFT JOIN user_infos ui   ON ui.user_id = u.id
-        LEFT JOIN rooms r         ON r.accommodation_id = acm.id
+        LEFT JOIN users u               ON u.id = acm.user_id
+        LEFT JOIN user_infos ui         ON ui.user_id = u.id
+        LEFT JOIN accommodation_types act ON act.id = acm.type_id
+        LEFT JOIN rooms r               ON r.accommodation_id = acm.id
         LEFT JOIN reservations re ON re.room_id = r.id
             AND re.status IN (7, 8)
             AND re.success_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
@@ -54,6 +55,7 @@ def get_no_ad_targets(conn, limit: int = 50) -> list[dict]:
           AND u.email NOT LIKE '%%mrmention%%'
           AND u.email NOT LIKE '%%test%%'
           AND NOT (acm.name_expression LIKE '%%부산%%' AND acm.name_expression LIKE '%%워케이션%%')
+          AND (act.name IS NULL OR act.name NOT LIKE '%%위탁')
         GROUP BY acm.id, acm.name_expression, acm.sales_id,
                  u.name, u.email, ui.phone_number
         HAVING res_90d > 0
@@ -90,15 +92,17 @@ def get_upgrade_targets(conn, limit: int = 20) -> list[dict]:
             AND aa.success_at IS NOT NULL
             AND (aa.expiration_at IS NULL OR aa.expiration_at > NOW())
             AND aa.advert_commission <= 0.15
-        LEFT JOIN users u         ON u.id = acm.user_id
-        LEFT JOIN user_infos ui   ON ui.user_id = u.id
-        LEFT JOIN rooms r         ON r.accommodation_id = acm.id
+        LEFT JOIN users u               ON u.id = acm.user_id
+        LEFT JOIN user_infos ui         ON ui.user_id = u.id
+        LEFT JOIN accommodation_types act ON act.id = acm.type_id
+        LEFT JOIN rooms r               ON r.accommodation_id = acm.id
         LEFT JOIN reservations re ON re.room_id = r.id
             AND re.status IN (7, 8)
             AND re.success_at >= DATE_SUB(NOW(), INTERVAL 180 DAY)
         WHERE acm.deleted_at IS NULL AND acm.is_test = 0
           AND u.email NOT LIKE '%%mrmention%%'
           AND NOT (acm.name_expression LIKE '%%부산%%' AND acm.name_expression LIKE '%%워케이션%%')
+          AND (act.name IS NULL OR act.name NOT LIKE '%%위탁')
         GROUP BY acm.id, acm.name_expression, acm.sales_id,
                  aa.advert_name, aa.advert_commission,
                  u.name, u.email, ui.phone_number

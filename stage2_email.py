@@ -12,9 +12,10 @@ from urllib.parse import quote
 import sent_log
 
 _TEMPLATE_PATH = Path(__file__).parent / "templates" / "upsell_email.html"
-_SMTP_USER  = os.environ.get("SMTP_USER",  "partnerhost@mrmention.co.kr")
-_FROM_EMAIL = os.environ.get("FROM_EMAIL", "marketing@mrmention.co.kr")
-_FROM_NAME  = "미스터멘션 사업운영팀"
+_SMTP_USER     = os.environ.get("SMTP_USER",    "partnerhost@mrmention.co.kr")
+_FROM_EMAIL    = os.environ.get("FROM_EMAIL",   "marketing@mrmention.co.kr")
+_FROM_NAME     = "미스터멘션 사업운영팀"
+_MONITOR_EMAIL = os.environ.get("MONITOR_EMAIL", "marketing@mrmention.co.kr")
 
 
 def _load_template() -> str:
@@ -87,9 +88,10 @@ def send_one(
         return True
 
     try:
-        smtp_conn.sendmail(_FROM_EMAIL, to_email, msg.as_string())
+        recipients = [to_email, _MONITOR_EMAIL] if _MONITOR_EMAIL != to_email else [to_email]
+        smtp_conn.sendmail(_FROM_EMAIL, recipients, msg.as_string())
         sent_log.mark_sent(to_email)
-        print(f"  ✓ 발송 완료: {to_email}")
+        print(f"  ✓ 발송 완료: {to_email} (모니터링 BCC: {_MONITOR_EMAIL})")
         return True
     except Exception as e:
         print(f"  ✗ 발송 실패 ({to_email}): {e}")
