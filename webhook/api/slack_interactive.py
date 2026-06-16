@@ -33,25 +33,15 @@ def _verify_slack_signature(body: bytes, timestamp: str, signature: str) -> bool
 
 # ── GitHub Actions workflow_dispatch 트리거 ──────────────────────────────────
 
-def _trigger_github_actions(acm_ids: str, test_mode: bool = False) -> tuple[bool, str]:
-    token  = os.environ.get("GH_PAT", "")
-    owner  = os.environ.get("GH_OWNER", "sungjun818")
-    repo   = os.environ.get("GH_REPO",  "")
+def _trigger_github_actions(acm_ids: str, workflow: str, inputs: dict) -> tuple[bool, str]:
+    token = os.environ.get("GH_PAT", "")
+    owner = os.environ.get("GH_OWNER", "sungjun818")
+    repo  = os.environ.get("GH_REPO",  "")
     if not token or not repo:
         return False, "GH_PAT 또는 GH_REPO 환경변수 없음"
 
-    workflow = "weekly_upsell.yml"
     url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow}/dispatches"
-
-    payload = json.dumps({
-        "ref": "master",
-        "inputs": {
-            "stage":     "2",
-            "execute":   "true",
-            "acm_ids":   acm_ids,
-            "test_mode": "true" if test_mode else "false",
-        },
-    }).encode()
+    payload = json.dumps({"ref": "master", "inputs": inputs}).encode()
 
     req = urllib.request.Request(url, data=payload, headers={
         "Authorization":        f"Bearer {token}",
@@ -66,6 +56,23 @@ def _trigger_github_actions(acm_ids: str, test_mode: bool = False) -> tuple[bool
     except HTTPError as e:
         body = e.read().decode()
         return False, f"GitHub API 오류 {e.code}: {body}"
+
+
+def _trigger_upsell(acm_ids: str, test_mode: bool = False) -> tuple[bool, str]:
+    return _trigger_github_actions(acm_ids, "weekly_upsell.yml", {
+        "stage":     "2",
+        "execute":   "true",
+        "acm_ids":   acm_ids,
+        "test_mode": "true" if test_mode else "false",
+    })
+
+
+def _trigger_monthly_report(acm_ids: str, test_mode: bool = False) -> tuple[bool, str]:
+    return _trigger_github_actions(acm_ids, "monthly_report.yml", {
+        "execute":   "true",
+        "acm_ids":   acm_ids,
+        "test_mode": "true" if test_mode else "false",
+    })
 
 
 # ── Slack 즉시 응답 ──────────────────────────────────────────────────────────
@@ -118,29 +125,40 @@ class handler(BaseHTTPRequestHandler):
         action_id = action.get("action_id", "")
         acm_ids   = action.get("value", "")
 
+        # ── 업셀 테스트 발송 ──────────────────────────────────────────────
         if action_id == "test_upsell_email":
             self._respond(200, {"text": f"🔍 테스트 이메일 발송 중... (acm_id: {acm_ids})", "response_type": "in_channel"})
-            ok, msg = _trigger_github_actions(acm_ids, test_mode=True)
-            if not ok:
-                print(f"[ERROR] 테스트 발송 트리거 실패: {msg}")
-            else:
-                print(f"[INFO] 테스트 발송 트리거 성공: acm_id={acm_ids}")
+            ok, msg = _trigger_upsell(acm_ids, test_mode=True)
+            print(f"[{'INFO' if ok else 'ERROR'}] 업셀 테스트 트리거: {msg}")
             return
 
+        # ── 월간 리포트 테스트 발송 ───────────────────────────────────────
+        if action_id == "test_monthly_report":
+            self._respond(200, {"text": f"🔍 월간 리포트 테스트 발송 중... (acm_id: {acm_ids})", "response_type": "in_channel"})
+            ok, msg = _trigger_monthly_report(acm_ids, test_mode=True)
+            print(f"[{'INFO' if ok else 'ERROR'}] 월간 리포트 테스트 트리거: {msg}")
+            return
+
+        # ── 월간 리포트 실제 발송 ─────────────────────────────────────────
+        if action_id in ("send_monthly_report", "send_all_monthly_report") and acm_ids:
+            self._respond(200, {"text": f"📊 월간 리포트 발송 시작 (acm_ids: {acm_ids})", "response_type": "in_channel"})
+            ok, msg = _trigger_monthly_report(acm_ids)
+            print(f"[{'INFO' if ok else 'ERROR'}] 월간 리포트 트리거: {msg}")
+            return
+
+        # ── 업셀 실제 발송 ────────────────────────────────────────────────
         if action_id not in ("send_upsell_email", "send_all_upsell") or not acm_ids:
             self._respond(200, {"ok": True})
             return
 
-        # 즉시 Slack에 응답 (3초 타임아웃 방지)
         ack = _slack_ack(acm_ids, action_id)
         self._respond(200, ack)
 
-        # GitHub Actions 트리거 (응답 후 비동기 실행)
-        ok, msg = _trigger_github_actions(acm_ids)
+        ok, msg = _trigger_upsell(acm_ids)
         if not ok:
-            print(f"[ERROR] GitHub Actions 트리거 실패: {msg}")
+            print(f"[ERROR] 업셀 트리거 실패: {msg}")
         else:
-            print(f"[INFO] GitHub Actions 트리거 성공: acm_ids={acm_ids}")
+            print(f"[INFO] 업셀 트리거 성공: acm_ids={acm_ids}")
 
     def do_GET(self):
         self._respond(200, {"status": "ok", "service": "upsell-webhook"})
