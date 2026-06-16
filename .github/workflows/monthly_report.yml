@@ -2,7 +2,7 @@ name: 호스트 월간 성과 리포트
 
 on:
   schedule:
-    - cron: "0 15 5 * *"  # 매월 5일 UTC 15:00 (KST 자정 00:00) → Slack 10시 예약 발송
+    - cron: "0 15 1 * *"  # 매월 1일 UTC 15:00 (KST 자정 00:00) → Slack 10시 예약 발송
   workflow_dispatch:
     inputs:
       execute:

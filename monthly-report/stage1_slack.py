@@ -72,13 +72,28 @@ def build_message(
     email_contents: dict,
     month_label: str,
 ) -> list[dict]:
+    """메인 Slack 메시지: 요약 + 전체발송 버튼 + 숙소 목록 (블록 한도 고려해 카드 최대 20개)."""
     today   = datetime.now(KST).strftime("%Y-%m-%d")
     all_ids = [h["acm_id"] for h in hosts if h["acm_id"] in email_contents]
 
+    perf_counts: dict[str, int] = {}
+    for h in hosts:
+        p = h.get("perf", "stable")
+        perf_counts[p] = perf_counts.get(p, 0) + 1
+
+    summary_text = (
+        f"{slack_summary}\n\n"
+        f"🟢 성장 {perf_counts.get('growth', 0)}개 | "
+        f"🟡 유지 {perf_counts.get('stable', 0) + perf_counts.get('new', 0)}개 | "
+        f"🔴 저조/0건 {perf_counts.get('poor', 0) + perf_counts.get('zero', 0)}개 | "
+        f"총 *{len(hosts)}개*"
+    )
+
     blocks = [
         {"type": "header", "text": {"type": "plain_text", "text": f"📊 {month_label} 호스트 월간 성과 리포트 — {today}"}},
-        {"type": "section", "text": {"type": "mrkdwn", "text": slack_summary}},
-        {"type": "context", "elements": [{"type": "mrkdwn", "text": "💡 각 숙소의 이메일 본문을 확인한 후 발송 버튼을 눌러주세요."}]},
+        {"type": "section", "text": {"type": "mrkdwn", "text": summary_text}},
+        {"type": "context", "elements": [{"type": "mrkdwn",
+            "text": "💡 스레드에서 각 호스트 이메일 전문을 확인한 후 발송 버튼을 눌러주세요."}]},
     ]
 
     if all_ids:
@@ -86,38 +101,40 @@ def build_message(
 
     blocks.append({"type": "divider"})
 
-    for h in hosts:
-        acm_id    = h["acm_id"]
-        perf      = h.get("perf", "stable")
-        emoji     = _perf_emoji(perf)
-        change    = h.get("change_pct", 0.0)
-        change_str = f"+{change:.1f}%" if change > 0 else f"{change:.1f}%"
-        content   = email_contents.get(acm_id, {})
-        has_email = acm_id in email_contents
-        subject   = content.get("subject", "—")
-        body_full = content.get("body", "").strip() if has_email else ""
+    # 숙소 카드: Slack 블록 한도(50) 고려해 최대 20개 표시
+    # 나머지는 스레드에서 확인 가능
+    for h in hosts[:20]:
+        acm_id         = h["acm_id"]
+        perf           = h.get("perf", "stable")
+        emoji          = _perf_emoji(perf)
+        change         = h.get("change_pct", 0.0)
+        change_str     = f"+{change:.1f}%" if change > 0 else f"{change:.1f}%"
+        has_email      = acm_id in email_contents
+        subject        = email_contents.get(acm_id, {}).get("subject", "—") if has_email else "—"
         commission_pct = int(float(h.get("advert_commission", 0)) * 100)
 
         text = (
             f"{emoji} *{h['acm_name']}*\n"
-            f"패키지: {h.get('advert_name', '')} ({commission_pct}%) | "
-            f"전월 예약 *{h.get('res_this_month', 0)}건* (전전월 대비 {change_str}) | "
+            f"{h.get('advert_name', '')} ({commission_pct}%) | "
+            f"전월 *{h.get('res_this_month', 0)}건* ({change_str}) | "
             f"GMV {int(h.get('gmv_this_month', 0)):,}원\n"
-            f"지역 광고 평균: {h.get('region_avg_res', 0)}건\n"
             f"📧 {h.get('host_email', '')} | 📱 {_fmt_phone(h.get('host_phone'))}"
         )
         if h.get("price_high"):
-            text += f"\n⚠️ 예약당 평균 {int(h.get('host_price_per_res', 0)):,}원 (지역 평균 {int(h.get('region_avg_price', 0)):,}원) — 가격 점검 필요"
+            text += f"\n⚠️ 예약당 {int(h.get('host_price_per_res', 0)):,}원 (지역 평균 {int(h.get('region_avg_price', 0)):,}원) — 가격 점검"
         if has_email:
             text += f"\n✉️ *제목:* {subject}"
-            if body_full:
-                text += f"\n📝 *이메일 본문:*\n{body_full}"
 
         blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text}})
         if has_email:
             blocks.append({"type": "actions", "elements": [_test_button(acm_id), _send_button(acm_id)]})
 
-    blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": f"총 {len(hosts)}개 숙소 | {month_label} 성과 기준"}]})
+    if len(hosts) > 20:
+        blocks.append({"type": "context", "elements": [{"type": "mrkdwn",
+            "text": f"📌 이하 {len(hosts) - 20}개 숙소는 스레드에서 확인하세요."}]})
+
+    blocks.append({"type": "context", "elements": [{"type": "mrkdwn",
+        "text": f"총 {len(hosts)}개 숙소 | {month_label} 전월 성과 기준"}]})
     return blocks
 
 
