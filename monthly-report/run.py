@@ -87,14 +87,20 @@ def main():
             print(f"  ⚠ 생성 실패 ({h['acm_name']}): {e}")
     print(f"  ✓ 이메일 {len(email_contents)}개 생성 완료")
 
-    # ── 4. Slack 리포트 ─────────────────────────────────────────────────────
+    # ── 4. Slack 리포트 (acm_ids 없을 때만 = 버튼 클릭 모드 제외) ───────────
     if not target_acm_ids:
         slack_summary = claude_client.generate_slack_summary(hosts, month_label)
         print("  ✓ Slack 요약 생성 완료")
 
         if not slack_channel or not slack_token:
             print("\n⚠️ UPSELL_SLACK_CHANNEL_ID 또는 AGENT_BOT_TOKEN 없음 — Slack 발송 스킵")
-        elif not dry_run:
+        elif dry_run:
+            print(f"\n  [DRY_RUN] {len(hosts)}개 Slack 발송 시뮬레이션")
+            if email_contents:
+                sample = next(iter(email_contents.values()))
+                print(f"  샘플 제목: {sample.get('subject', '')}")
+                print(f"  샘플 본문: {sample.get('body', '')[:200]}...")
+        else:
             blocks = stage1_slack.build_message(hosts, slack_summary, email_contents, month_label)
             print(f"\n📩 Slack 리포트 발송 중...")
 
@@ -112,15 +118,9 @@ def main():
                     print("  ✓ 리포트 + 이메일 미리보기 스레드 발송 완료")
                 else:
                     print("  ✗ 발송 실패")
-        else:
-            print(f"\n  [DRY_RUN] {len(hosts)}개 Slack 발송 시뮬레이션")
-            if email_contents:
-                sample = next(iter(email_contents.values()))
-                print(f"  샘플 제목: {sample.get('subject', '')}")
-                print(f"  샘플 본문: {sample.get('body', '')[:200]}...")
 
-    # ── 5. 이메일 발송 ──────────────────────────────────────────────────────
-    if target_acm_ids or args.execute:
+    # ── 5. 이메일 발송 (버튼 클릭으로 acm_ids 지정된 경우만) ─────────────────
+    if target_acm_ids:
         send_list = [h for h in hosts if h["acm_id"] in email_contents]
         print(f"\n{'[DRY_RUN] ' if dry_run else ''}이메일 발송 중...")
         stats = stage2_email.send_batch(
