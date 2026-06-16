@@ -27,7 +27,7 @@ def _render(template: str, ctx: dict) -> str:
     for key, val in ctx.items():
         html = html.replace(f"{{{{{key}}}}}", str(val))
     # 비교 블록 처리
-    if float(ctx.get("avg_res", 0)) > 0:
+    if int(ctx.get("ad_acm_cnt", 0)) > 0:
         html = html.replace("{{#if_compare}}", "").replace("{{/if_compare}}", "")
     else:
         import re
@@ -41,18 +41,20 @@ def _build_context(target: dict, region_avg: dict, email_content: dict) -> dict:
     extra_rev = target.get("extra_rev_90d", 0)
     subject = email_content.get("subject", "미스터멘션 파트너 성장 제안")
 
+    ad_acm_cnt = int(region_avg.get("ad_acm_cnt", 0))
     return {
-        "host_name":   target.get("host_name", "호스트"),
-        "acm_name":    target.get("acm_name", ""),
-        "acm_id":      target.get("acm_id", ""),
-        "res_90d":     target.get("res_90d", 0),
-        "gmv_90d_fmt": f"{int(target.get('gmv_90d', 0)):,}",
-        "current_pkg": current_pkg,
-        "avg_res":     avg_res,
+        "host_name":    target.get("host_name", "호스트"),
+        "acm_name":     target.get("acm_name", ""),
+        "acm_id":       target.get("acm_id", ""),
+        "res_90d":      target.get("res_90d", 0),
+        "gmv_90d_fmt":  f"{int(target.get('gmv_90d', 0)):,}",
+        "current_pkg":  current_pkg,
+        "avg_res":      avg_res,
+        "ad_acm_cnt":   ad_acm_cnt,
         "extra_rev_fmt": f"{extra_rev:,}",
-        "rec_package": target.get("rec_package", ""),
+        "rec_package":  target.get("rec_package", ""),
         "rec_rate_pct": int(float(target.get("rec_rate", 0)) * 100),
-        "email_body":  email_content.get("body", ""),
+        "email_body":   email_content.get("body", ""),
     }
 
 

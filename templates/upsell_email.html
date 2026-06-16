@@ -54,8 +54,8 @@
         <div class="s-value">{{current_pkg}}</div>
       </div>
       <div class="stat-item">
-        <div class="s-label">지역 광고 숙소 평균</div>
-        <div class="s-value">{{avg_res}}건</div>
+        <div class="s-label">지역 광고 경쟁 숙소</div>
+        <div class="s-value">{{ad_acm_cnt}}개</div>
       </div>
       <div class="stat-item">
         <div class="s-label">추가 예상 수익(90일)</div>
@@ -65,8 +65,8 @@
 
     {{#if_compare}}
     <div class="compare">
-      📊 같은 지역 광고 숙소는 평균 <strong>{{avg_res}}건</strong>을 기록하고 있습니다.
-      <strong>{{rec_package}}</strong>으로 전환 시 노출 우선순위가 높아져 예약 증가를 기대할 수 있습니다.
+      🏁 현재 같은 지역에서 <strong>{{ad_acm_cnt}}개</strong> 숙소가 광고로 검색 상단 노출 경쟁 중입니다.
+      <strong>{{rec_package}}</strong> 신청 시 귀 숙소도 검색 상위에 우선 노출되어 예약 선점 효과를 기대할 수 있습니다.
     </div>
     {{/if_compare}}
 

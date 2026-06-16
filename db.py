@@ -87,11 +87,23 @@ def get_upgrade_targets(conn, limit: int = 20) -> list[dict]:
             ), 0)                   AS gmv_90d,
             SUBSTRING_INDEX(SUBSTRING_INDEX(acm.name_expression, '/', 1), '[', -1) AS region
         FROM accommodations acm
-        JOIN accommodation_adverts aa
-            ON aa.accommodation_id = acm.id
-            AND aa.success_at IS NOT NULL
-            AND (aa.expiration_at IS NULL OR aa.expiration_at > NOW())
-            AND aa.advert_commission <= 0.15
+        JOIN (
+            SELECT aa1.accommodation_id, aa1.advert_name, aa1.advert_commission
+            FROM accommodation_adverts aa1
+            INNER JOIN (
+                SELECT accommodation_id, MAX(advert_commission) AS max_commission
+                FROM accommodation_adverts
+                WHERE success_at IS NOT NULL
+                  AND (expiration_at IS NULL OR expiration_at > NOW())
+                  AND advert_commission <= 0.15
+                GROUP BY accommodation_id
+            ) top ON top.accommodation_id = aa1.accommodation_id
+                  AND top.max_commission = aa1.advert_commission
+            WHERE aa1.success_at IS NOT NULL
+              AND (aa1.expiration_at IS NULL OR aa1.expiration_at > NOW())
+              AND aa1.advert_commission <= 0.15
+            GROUP BY aa1.accommodation_id, aa1.advert_name, aa1.advert_commission
+        ) aa ON aa.accommodation_id = acm.id
         LEFT JOIN users u               ON u.id = acm.user_id
         LEFT JOIN user_infos ui         ON ui.user_id = u.id
         LEFT JOIN accommodation_types act ON act.id = acm.type_id
@@ -123,12 +135,14 @@ def get_region_ad_avg(conn, region: str) -> dict:
         FROM (
             SELECT
                 acm.id,
-                COUNT(re.id) AS res_90d
+                COUNT(DISTINCT re.id) AS res_90d
             FROM accommodations acm
-            JOIN accommodation_adverts aa
-                ON aa.accommodation_id = acm.id
-                AND aa.success_at IS NOT NULL
-                AND (aa.expiration_at IS NULL OR aa.expiration_at > NOW())
+            JOIN (
+                SELECT DISTINCT accommodation_id
+                FROM accommodation_adverts
+                WHERE success_at IS NOT NULL
+                  AND (expiration_at IS NULL OR expiration_at > NOW())
+            ) aa ON aa.accommodation_id = acm.id
             LEFT JOIN rooms r ON r.accommodation_id = acm.id
             LEFT JOIN reservations re ON re.room_id = r.id
                 AND re.status IN (7, 8)
