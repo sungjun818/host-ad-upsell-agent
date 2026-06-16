@@ -92,6 +92,7 @@ jobs:
           AGENT_BOT_TOKEN:         ${{ secrets.AGENT_BOT_TOKEN }}
           UPSELL_SLACK_CHANNEL_ID: ${{ secrets.UPSELL_SLACK_CHANNEL_ID }}
           ACM_IDS:                 ${{ github.event.inputs.acm_ids }}
+          TEST_MODE:               ${{ github.event.inputs.test_mode }}
         run: |
           python - <<'EOF'
           import os
@@ -100,8 +101,11 @@ jobs:
           channel = os.environ["UPSELL_SLACK_CHANNEL_ID"]
           acm_ids = os.environ.get("ACM_IDS", "")
           count   = len([x for x in acm_ids.split(",") if x.strip()])
+          is_test = os.environ.get("TEST_MODE", "false") == "true"
+          prefix  = "🔍 [테스트] " if is_test else "✅ "
+          suffix  = " (테스트 메일로 발송됨)" if is_test else ""
           client.chat_postMessage(
               channel=channel,
-              text=f"✅ 월간 리포트 발송 완료: *{count}개* 숙소 호스트에게 리포트를 발송했습니다."
+              text=f"{prefix}월간 리포트 발송 완료: *{count}개* 숙소{suffix}"
           )
           EOF
