@@ -110,14 +110,18 @@ def send_batch(
 ) -> dict:
     """배치 이메일 발송. email_contents: {acm_id: {subject, body}}"""
     cooldown = 14 if not dry_run else 0
-    pending = sent_log.pending_emails(targets, cooldown_days=cooldown)
+    pending  = sent_log.pending_emails(targets, cooldown_days=cooldown)
+    blocked  = sent_log.blocked_emails(targets, cooldown_days=cooldown) if not dry_run else []
 
     print(f"\n📧 이메일 발송 대상: {len(pending)}/{len(targets)}개 (쿨다운 제외)")
+    if blocked:
+        for b in blocked:
+            print(f"  ⏳ 쿨다운 차단: {b['acm_name']} — 다음 발송 가능일 {b['next_available']}")
 
     if not pending:
-        return {"success": 0, "skip": len(targets), "fail": 0}
+        return {"success": 0, "skip": len(targets), "fail": 0, "blocked": blocked}
 
-    stats = {"success": 0, "skip": len(targets) - len(pending), "fail": 0}
+    stats = {"success": 0, "skip": len(targets) - len(pending), "fail": 0, "blocked": blocked}
 
     if dry_run:
         for t in pending:

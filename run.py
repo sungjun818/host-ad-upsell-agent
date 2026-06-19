@@ -185,6 +185,11 @@ def main():
         )
         print(f"  ✓ 완료: 발송 {stats['success']}건 | 스킵 {stats['skip']}건 | 실패 {stats['fail']}건")
 
+        # 쿨다운 차단 숙소가 있으면 Slack으로 담당자 알림
+        if not dry_run and stats.get("blocked") and slack_channel and slack_token:
+            stage1_slack.post_cooldown_warning(stats["blocked"], slack_channel, slack_token)
+            print(f"  ⏳ 쿨다운 차단 알림 발송: {len(stats['blocked'])}건")
+
     print("\n✅ 완료")
 
 

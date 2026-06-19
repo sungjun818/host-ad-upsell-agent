@@ -299,3 +299,16 @@ def post_email_threads(
             time.sleep(delay)
         except SlackApiError as e:
             print(f"  ⚠ 스레드 발송 실패 ({t['acm_name']}): {e.response['error']}")
+
+
+def post_cooldown_warning(blocked: list[dict], channel_id: str, bot_token: str) -> None:
+    """이메일 쿨다운으로 발송 차단된 숙소 목록을 Slack에 알림."""
+    if not blocked or not channel_id or not bot_token:
+        return
+    client = WebClient(token=bot_token)
+    lines = [f"• {b['acm_name']} ({b.get('host_email', '')}) — 다음 발송 가능일: *{b['next_available']}*" for b in blocked]
+    text = f"⏳ *이메일 쿨다운으로 미발송 {len(blocked)}건*\n" + "\n".join(lines)
+    try:
+        client.chat_postMessage(channel=channel_id, text=text, mrkdwn=True)
+    except SlackApiError as e:
+        print(f"  ⚠ 쿨다운 알림 발송 실패: {e.response['error']}")
