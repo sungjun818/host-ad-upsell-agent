@@ -54,7 +54,7 @@ jobs:
           TEST_EMAIL_TO:           ${{ secrets.TEST_EMAIL_TO }}
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
-            EXECUTE="false"
+            EXECUTE="true"
             SCHED_FLAG="--schedule-slack"
             ACM_IDS=""
           else
