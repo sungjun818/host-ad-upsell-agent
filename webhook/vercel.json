@@ -1,4 +1,10 @@
 {
+  "builds": [
+    {
+      "src": "api/slack_interactive.py",
+      "use": "@vercel/python"
+    }
+  ],
   "rewrites": [
     { "source": "/api/slack-interactive", "destination": "/api/slack_interactive" }
   ]
