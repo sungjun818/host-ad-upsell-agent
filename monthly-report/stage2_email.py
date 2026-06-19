@@ -22,9 +22,14 @@ def _load_template() -> str:
 
 
 def _render(template: str, ctx: dict) -> str:
+    import re
     html = template
     for key, val in ctx.items():
         html = html.replace(f"{{{{{key}}}}}", str(val))
+    if ctx.get("show_pkg"):
+        html = html.replace("{{#if_show_pkg}}", "").replace("{{/if_show_pkg}}", "")
+    else:
+        html = re.sub(r"\{\{#if_show_pkg\}\}.*?\{\{/if_show_pkg\}\}", "", html, flags=re.DOTALL)
     return html
 
 
@@ -56,6 +61,7 @@ def _build_context(host: dict, email_content: dict, month_label: str) -> dict:
         "acm_name":       host.get("acm_name", ""),
         "acm_id":         host.get("acm_id", ""),
         "pkg_name":       host.get("advert_name", ""),
+        "show_pkg":       perf != "zero",
         "res_this_month": res_this,
         "gmv_this_fmt":   f"{gmv_this:,}",
         "res_last_month": res_last,

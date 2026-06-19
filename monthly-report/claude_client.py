@@ -18,7 +18,7 @@ _PERF_GUIDE = {
     "growth": "축하와 긍정적 에너지로 시작. 성장세를 유지하려면 더 높은 패키지 혜택이 도움될 수 있음을 자연스럽게 언급.",
     "stable": "안정적 운영을 격려. 성수기/특수 시즌 대비 전략 팁 1가지 제안.",
     "poor":   "공감하는 어조로 시작. 비수기·경쟁 심화 등 외부 요인을 먼저 언급하고, 가격 전략과 사진/설명 개선을 조언. 강요하지 않고 제안하는 톤.",
-    "zero":   "부드럽지만 솔직하게. 전월 예약이 0건임을 사실로 짚고, 광고 효과를 높이기 위해 숙소 가격 경쟁력·사진·설명·응답률 점검을 구체적으로 조언. 미스터멘션도 함께 고민하고 있다는 연대감 표현.",
+    "zero":   "부드럽지만 따뜻하게. 전월 예약이 0건임을 사실로 짚되 자책하지 않도록 배려. 숙소 가격 경쟁력·대표 사진·설명 문구·응답률 등 운영 개선 포인트를 구체적으로 조언. 미스터멘션도 함께 응원하고 있다는 연대감 표현. 절대 광고·패키지·수수료·광고 효과 등 광고 관련 표현 사용 금지.",
     "new":    "첫 달 광고 시작을 축하. 데이터 축적 중임을 안내하고, 좋은 첫인상을 위한 팁 제안.",
 }
 
@@ -61,17 +61,19 @@ def generate_report_email(host: dict, month_label: str) -> dict:
 
     guide = _PERF_GUIDE.get(perf, _PERF_GUIDE["stable"])
 
+    # zero 호스트에게는 광고·패키지 정보 노출 금지
+    pkg_line    = f"- 현재 패키지: {pkg_name} ({int(commission * 100)}%)\n" if perf != "zero" else ""
+    region_line = f"- 같은 지역 광고 숙소 평균: {region_avg}건\n"            if perf != "zero" else ""
+
     prompt = f"""당신은 미스터멘션 사업운영팀입니다.
 아래 호스트에게 보낼 {month_label} 월간 성과 리포트 이메일을 작성하세요.
 
 [호스트 정보]
 - 숙소명: {host['acm_name']}
 - 호스트명: {host['host_name']}
-- 현재 패키지: {pkg_name} ({int(commission * 100)}%)
-- {month_label} 예약: {res_this}건 / GMV {gmv_this:,}원
+{pkg_line}- {month_label} 예약: {res_this}건 / GMV {gmv_this:,}원
 - 전월 대비: {'+' if change >= 0 else ''}{change:.1f}%
-- 같은 지역 광고 숙소 평균: {region_avg}건
-- 성과 분류: {perf}
+{region_line}- 성과 분류: {perf}
 {price_advice}
 {upgrade_text}
 
