@@ -99,6 +99,17 @@ def build_message(
     if all_ids:
         blocks.append({"type": "actions", "elements": [_send_all_button(all_ids)]})
 
+    # ── 2개월 연속 0건 경고 섹션 ──────────────────────────────────────────
+    consec_zero = [h for h in hosts if h.get("consecutive_zero")]
+    if consec_zero:
+        blocks.append({"type": "divider"})
+        lines = [f"🚨 *{h['acm_name']}*\n   📧 {h.get('host_email', '')} | 📱 {_fmt_phone(h.get('host_phone'))} | {h.get('advert_name', '')} ({int(float(h.get('advert_commission', 0)) * 100)}%)" for h in consec_zero]
+        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": (
+            f"🚨 *2개월 연속 0건 — 직접 연락 필요* ({len(consec_zero)}개)\n"
+            "가격·사진·설명 컨설팅이 필요한 호스트입니다. 이메일 외 직접 연락을 권장합니다.\n\n"
+            + "\n".join(lines)
+        )}})
+
     blocks.append({"type": "divider"})
 
     # 숙소 카드: Slack 블록 한도(50) 고려해 최대 20개 표시

@@ -61,6 +61,7 @@ def score_hosts(hosts: list[dict], region_avgs: dict) -> list[dict]:
             "region_avg_price":   int(region_price),
             "price_high":         is_price_high(host_price_per_res, region_price),
             "region_avg_res":     round(float(avg.get("avg_res", 0)), 1),
+            "consecutive_zero":   res_this == 0 and res_last == 0,
         })
 
     return result
