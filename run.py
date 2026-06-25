@@ -36,8 +36,8 @@ def main():
                         help="실행 단계: 1=Slack리포트, 2=이메일, all=전체 (기본)")
     parser.add_argument("--execute", action="store_true",
                         help="실제 발송 (기본: 드라이런)")
-    parser.add_argument("--limit", type=int, default=50,
-                        help="분석 대상 숙소 수 (기본 50)")
+    parser.add_argument("--limit", type=int, default=200,
+                        help="분석 대상 숙소 수 (기본 200)")
     parser.add_argument("--acm-ids", dest="acm_ids", default="",
                         help="발송 대상 숙소 ID comma-separated. 지정 시 해당 숙소만 이메일 발송")
     parser.add_argument("--schedule-slack", dest="schedule_slack", action="store_true",
@@ -145,7 +145,7 @@ def main():
                     )
                     sid = stage1_slack.post_scheduled(blocks, slack_channel, slack_token)
                     if sid:
-                        shown_log.mark_shown([t["acm_id"] for t in all_targets])
+                        shown_log.mark_shown([t["acm_id"] for t in email_candidates])
                         print("  ✓ 이메일 미리보기 즉시 발송 + 리포트 10시 예약 완료")
                     else:
                         print("  ✗ 예약 실패")
@@ -160,7 +160,7 @@ def main():
                             bot_token=slack_token,
                             thread_ts=ts,
                         )
-                        shown_log.mark_shown([t["acm_id"] for t in all_targets])
+                        shown_log.mark_shown([t["acm_id"] for t in email_candidates])
                         print("  ✓ 리포트 + 이메일 미리보기 스레드 발송 완료")
                     else:
                         print("  ✗ 발송 실패")
