@@ -32,9 +32,11 @@ def get_no_ad_targets(conn, limit: int = 50) -> list[dict]:
             ui.phone_number         AS host_phone,
             COUNT(re.id)            AS res_90d,
             COALESCE(SUM(
-                IF(re.suggestion_price, ROUND(re.suggestion_price),
-                   IF(re.total_price_set = 0, ROUND(re.total_price),
-                      ROUND(re.total_price_set)))
+                CASE WHEN re.status IN (7, 8, 12) THEN
+                    IF(re.suggestion_price, ROUND(re.suggestion_price),
+                       IF(re.total_price_set = 0, ROUND(re.total_price),
+                          ROUND(re.total_price_set)))
+                ELSE 0 END
             ), 0)                   AS gmv_90d,
             SUBSTRING_INDEX(SUBSTRING_INDEX(acm.name_expression, '/', 1), '[', -1) AS region
         FROM accommodations acm
@@ -43,8 +45,8 @@ def get_no_ad_targets(conn, limit: int = 50) -> list[dict]:
         LEFT JOIN accommodation_types act ON act.id = acm.type_id
         LEFT JOIN rooms r               ON r.accommodation_id = acm.id
         LEFT JOIN reservations re ON re.room_id = r.id
-            AND re.status IN (7, 8)
-            AND re.success_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+            AND re.status IN (1, 3, 6, 7, 8, 12)
+            AND re.created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
         LEFT JOIN accommodation_adverts aa
             ON aa.accommodation_id = acm.id
             AND aa.success_at IS NOT NULL

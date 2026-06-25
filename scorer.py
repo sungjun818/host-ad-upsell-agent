@@ -3,10 +3,10 @@ from __future__ import annotations
 
 
 _GRADE_THRESHOLDS = [
-    ("A", 20),
-    ("B", 10),
-    ("C", 3),
-    ("D", 1),
+    ("A", 10),
+    ("B",  5),
+    ("C",  2),
+    ("D",  1),
 ]
 
 _NEXT_PACKAGE = {
