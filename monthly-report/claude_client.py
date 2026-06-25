@@ -6,6 +6,22 @@ import anthropic
 
 _client: anthropic.Anthropic | None = None
 
+_KOREAN_FIXES = {
+    "쿠pon": "쿠폰", "쿠Pon": "쿠폰", "쿠PON": "쿠폰",
+    "이vent": "이벤트", "이Vent": "이벤트", "이ven트": "이벤트",
+    "쿠pon이": "쿠폰이", "쿠pon을": "쿠폰을", "쿠pon은": "쿠폰은",
+    "coupon": "쿠폰", "Coupon": "쿠폰", "COUPON": "쿠폰",
+    "push": "푸시", "PUSH": "푸시",
+    "marketing": "마케팅", "Marketing": "마케팅",
+    "package": "패키지", "Package": "패키지",
+}
+
+
+def _fix_korean(text: str) -> str:
+    for wrong, right in _KOREAN_FIXES.items():
+        text = text.replace(wrong, right)
+    return text
+
 
 def _get_client() -> anthropic.Anthropic:
     global _client
@@ -87,6 +103,7 @@ def generate_report_email(host: dict, month_label: str) -> dict:
 - 조언은 강요가 아닌 제안 형태로
 - 마지막에 CTA: "로그인하고 성과 확인하기 → [버튼]" 과 "1:1 문의하기 → [버튼]" 안내
 - 발신자 서명: '미스터멘션 사업운영팀' (영문 MrMention 사용 금지)
+- 한국어 단어 중간에 영문자 절대 혼용 금지 (예: '쿠pon' → '쿠폰', '이ven트' → '이벤트')
 - 본문 600자 이내, HTML 태그 없이 순수 텍스트
 - 반드시 JSON만 반환"""
 
@@ -102,7 +119,10 @@ def generate_report_email(host: dict, month_label: str) -> dict:
         text = text.split("```")[1]
         if text.startswith("json"):
             text = text[4:]
-    return json.loads(text)
+    result = json.loads(text)
+    result["subject"] = _fix_korean(result.get("subject", ""))
+    result["body"]    = _fix_korean(result.get("body", ""))
+    return result
 
 
 def generate_slack_summary(hosts: list[dict], month_label: str) -> str:

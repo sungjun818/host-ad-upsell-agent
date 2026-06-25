@@ -6,6 +6,23 @@ import anthropic
 
 _client: anthropic.Anthropic | None = None
 
+_KOREAN_FIXES = {
+    "쿠pon": "쿠폰", "쿠Pon": "쿠폰", "쿠PON": "쿠폰",
+    "이vent": "이벤트", "이Vent": "이벤트", "이ven트": "이벤트",
+    "쿠pon이": "쿠폰이", "쿠pon을": "쿠폰을", "쿠pon은": "쿠폰은",
+    "coupon": "쿠폰", "Coupon": "쿠폰", "COUPON": "쿠폰",
+    "push": "푸시", "PUSH": "푸시",
+    "marketing": "마케팅", "Marketing": "마케팅",
+    "package": "패키지", "Package": "패키지",
+}
+
+
+def _fix_korean(text: str) -> str:
+    """한국어 단어 중 영문 혼용 오류 교정."""
+    for wrong, right in _KOREAN_FIXES.items():
+        text = text.replace(wrong, right)
+    return text
+
 
 def _get_client() -> anthropic.Anthropic:
     global _client
@@ -91,6 +108,7 @@ def generate_email_body(target: dict, region_avg: dict) -> dict:
 - 위의 [{rec_pkg} 혜택] 항목들을 이메일 본문에 자연스럽게 녹여 2~3줄로 설명 (혜택 목록을 그대로 나열하지 말고 문장으로 풀어서 작성)
 - 마지막에 CTA 두 줄 추가: "로그인하고 광고신청 하러가기 → [버튼]" 과 "문의 하러가기 → [버튼]" (버튼 URL은 HTML 템플릿에서 자동 삽입되므로 본문에는 안내 문구만 작성)
 - 발신자 서명은 반드시 '미스터멘션 사업운영팀'으로 작성 (영문 MrMention 사용 금지)
+- 한국어 단어 중간에 영문자 절대 혼용 금지 (예: '쿠pon' → '쿠폰', '이ven트' → '이벤트')
 - 본문 500자 이내, HTML 태그 없이 순수 텍스트
 - 반드시 JSON만 반환 (다른 텍스트 없이)"""
 
@@ -101,9 +119,11 @@ def generate_email_body(target: dict, region_avg: dict) -> dict:
     )
     import json
     text = resp.content[0].text.strip()
-    # JSON 블록 추출
     if "```" in text:
         text = text.split("```")[1]
         if text.startswith("json"):
             text = text[4:]
-    return json.loads(text)
+    result = json.loads(text)
+    result["subject"] = _fix_korean(result.get("subject", ""))
+    result["body"]    = _fix_korean(result.get("body", ""))
+    return result
