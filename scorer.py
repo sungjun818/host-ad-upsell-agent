@@ -4,7 +4,7 @@ from __future__ import annotations
 
 _GRADE_THRESHOLDS = [
     ("A", 10),
-    ("B",  5),
+    ("B",  3),
     ("C",  2),
     ("D",  1),
 ]
