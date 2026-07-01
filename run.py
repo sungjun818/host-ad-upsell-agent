@@ -101,12 +101,12 @@ def main():
         upgrade_targets = [t for t in upgrade_targets if t["acm_id"] in target_acm_ids]
         print(f"  ✓ 필터 후 대상: {len(all_targets)}개")
 
-    # ── 3. Claude 이메일 생성 (항상 A/B급 대상으로 선제 생성) ────────────
-    # Slack 리포트에 미리보기를 포함해야 하므로, stage=1이어도 생성
+    # ── 3. Claude 이메일 생성 (Slack에 카드가 뜨는 모든 숙소 대상) ─────────
+    # 등급 무관하게 Slack에 노출되는 숙소 전체에 버튼 생성
     print("\n🧠 Claude 개인화 이메일 생성 중...")
     email_candidates = (
         all_targets if target_acm_ids
-        else [t for t in all_targets if t["grade"] in ("A", "B")][:30]
+        else all_targets[:30]
     )
     email_contents: dict = {}
     for t in email_candidates:
