@@ -84,7 +84,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add monthly-report/sent_log.json || true
           git diff --cached --quiet || git commit -m "chore: update monthly-report sent_log [skip ci]"
-          git push
+          git pull --rebase origin master && git push
 
       - name: 완료 알림 Slack 발송
         if: ${{ github.event.inputs.acm_ids != '' && github.event.inputs.execute == 'true' }}
